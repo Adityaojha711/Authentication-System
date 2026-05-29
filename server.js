@@ -1,3 +1,5 @@
+const dotenv = require("dotenv");
+dotenv.config();
 const express = require("express");
 const bcrypt = require("bcrypt");
 const multer = require("multer");
@@ -5,8 +7,9 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 const crypto = require("crypto");
-const User = require("./Models/user.Model.js");  // Capital U - it's a class!
+const User = require("./Models/user.Model.js");
 const upload = require("./utils/multer.js");
+const transporter = require("./utils/mail.js");
 
 const app = express();
 app.use(cookieParser());
@@ -34,37 +37,32 @@ app.post("/Register", upload.single("profilepic"), async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Validate file upload
     if (!req.file) {
       return res.status(400).json({ message: "Profile picture is required" });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
 
-    // Validate password strength (min 6 characters)
     if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters long" });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ message: "Email already registered" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
     const newUser = new User({
       name,
       email,
@@ -73,20 +71,36 @@ app.post("/Register", upload.single("profilepic"), async (req, res) => {
       isVerified: false,
     });
 
-    // Save user to database
     const savedUser = await newUser.save();
+    console.log("hellooooooooooo");
+    try {
+      const mail = await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Welcome to Our App!",
+        text: `Hi ${name},\n\nThank you for registering! Your account has been created successfully.\n\nBest regards,\nThe Team`,
+      });
+      console.log("Email sent:", mail.response);
+    } catch (error) {
+      console.log("error catched !!!!", error);
+    } finally {
+      console.log("finally completed");
+    }
 
-    // Generate JWT token
+    
+
     const token = jwt.sign({ email, name }, process.env.JWT_SECRET || "secret");
     res.cookie("token", token, { httpOnly: true, maxAge: 3600000 });
 
-    res.status(201).json({ 
-      message: "User registered successfully", 
-      user: { name: savedUser.name, email: savedUser.email, id: savedUser._id } 
+    res.status(201).json({
+      message: "User registered successfully",
+      user: { name: savedUser.name, email: savedUser.email, id: savedUser._id },
     });
   } catch (error) {
     console.error("Registration error:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 });
 
