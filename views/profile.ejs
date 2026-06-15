@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile</title>
+    <link rel="stylesheet" href="/stylesheet/style.css" />
+  </head>
+  <body>
+    <div class="container profile-card">
+      <div class="profile-header">
+        <div class="avatar">
+          <img src="/image/uploads/<%- user.profilepic %>" alt="Profile picture" />
+        </div>
+        <div>
+          <h1><%- user.name %></h1>
+          <p class="muted">Welcome back!</p>
+        </div>
+      </div>
+
+      <div class="profile-details">
+        <p><strong>Email:</strong> <%= user.email %></p>
+        <p><strong>Member since:</strong> <%= new Date(user.createdAt).toLocaleDateString() %></p>
+      </div>
+
+      <div class="links">
+        <a class="btn btn-secondary" href="/logout">Logout</a>
+        <a class="btn btn-primary" href="/forgetpass">Reset password</a>
+      </div>
+    </div>
+  </body>
+</html>
